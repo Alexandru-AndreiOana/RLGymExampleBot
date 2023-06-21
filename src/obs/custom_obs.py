@@ -4,39 +4,46 @@ from typing import Any, List
 from rlgym_compat import common_values
 from rlgym_compat import PlayerData, GameState, PhysicsObject
 
+# from src.obs.utils import normalize_obs
 
-class AdvancedObs:
+
+
+class CustomObs:
+    # Termeni de normalizare
+    BACK_NET_Y = 6000
+    GOAL_HEIGHT = 642.775
+
     POS_STD = 2300
     ANG_STD = math.pi
-
-    def __init__(self):
-        super().__init__()
-
-    def reset(self, initial_state: GameState):
-        pass
+    # Pozitiile portilor
+    ORANGE_GOAL = np.array((0, BACK_NET_Y, GOAL_HEIGHT / 2)) / POS_STD
+    BLUE_GOAL = np.array((0, -BACK_NET_Y, GOAL_HEIGHT / 2)) / POS_STD
 
     def build_obs(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> Any:
-
+        # Observatia este reprezentata simetric
+        # pentru ambele echipe
         if player.team_num == common_values.ORANGE_TEAM:
             inverted = True
             ball = state.inverted_ball
             pads = state.inverted_boost_pads
+            goals_position = self.ORANGE_GOAL + self.BLUE_GOAL
         else:
             inverted = False
             ball = state.ball
             pads = state.boost_pads
+            goals_position = self.BLUE_GOAL + self.ORANGE_GOAL
 
         obs = [ball.position / self.POS_STD,
                ball.linear_velocity / self.POS_STD,
                ball.angular_velocity / self.ANG_STD,
                previous_action,
-               pads]
+               pads,
+               np.array(goals_position)]
 
         player_car = self._add_player_to_obs(obs, player, ball, inverted)
 
-        allies = []
-        enemies = []
-
+        allies, enemies = [], []
+        # Sunt adaugati si ceilalti jucatori in observatie
         for other in state.players:
             if other.car_id == player.car_id:
                 continue
@@ -47,18 +54,23 @@ class AdvancedObs:
                 team_obs = enemies
 
             other_car = self._add_player_to_obs(team_obs, other, ball, inverted)
-
-            # Extra info
             team_obs.extend([
+                # Distanta dintre pozitia oponentului si a agentului
                 (other_car.position - player_car.position) / self.POS_STD,
+                # Distanta dintre viteza liniara a oponentului si a agentului
                 (other_car.linear_velocity - player_car.linear_velocity) / self.POS_STD
             ])
 
         obs.extend(allies)
         obs.extend(enemies)
+
         return np.concatenate(obs)
 
+    def reset(self, initial_state: GameState):
+        pass
+
     def _add_player_to_obs(self, obs: List, player: PlayerData, ball: PhysicsObject, inverted: bool):
+        # Reprezentare simetrica
         if inverted:
             player_car = player.inverted_car_data
         else:

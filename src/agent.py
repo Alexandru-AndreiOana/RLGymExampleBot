@@ -1,20 +1,27 @@
-# import os
-
+from stable_baselines3 import PPO
+import pathlib
+from action.custom_action import CustomActionParser
 
 class Agent:
     def __init__(self):
-        # If you need to load your model from a file this is the time to do it
-        # You can do something like:
-        #
-        # self.actor = # your Model
-        #
-        # cur_dir = os.path.dirname(os.path.realpath(__file__))
-        # with open(os.path.join(cur_dir, 'model.p'), 'rb') as file:
-        #     model = pickle.load(file)
-        # self.actor.load_state_dict(model)
-        pass
+        _path = pathlib.Path(__file__).parent.resolve()
+        print("Path = ", str(_path))
+        custom_objects = {
+            "lr_schedule": 0.000001,
+            "clip_range": .02,
+            "n_envs": 1,
+        }
+
+        try:
+            self.actor = PPO.load(str(_path) + '/best_agent', device='cpu', custom_objects=custom_objects)
+            self.actor.training = False
+            self.parser = CustomActionParser()
+        except Exception as e:
+            print("Model failed to load due to the following exception: ", e)
 
     def act(self, state):
-        # Evaluate your model here
-        action = [1, 0, 0, 0, 0, 0, 0, 0]
-        return action
+        action = self.actor.predict(state, deterministic=True)
+        return action[0]
+
+        # x = self.parser.parse_actions(action[0], state)
+        # return x[0]

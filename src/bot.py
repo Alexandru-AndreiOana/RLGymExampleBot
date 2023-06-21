@@ -3,9 +3,9 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 import numpy as np
 
-from action.default_act import DefaultAction
+from action.custom_action import CustomActionParser
 from agent import Agent
-from obs.default_obs import DefaultObs
+from obs.custom_obs import CustomObs
 from rlgym_compat import GameState
 
 
@@ -15,9 +15,10 @@ class RLGymExampleBot(BaseAgent):
 
         # FIXME Hey, botmaker. Start here:
         # Swap the obs builder if you are using a different one, RLGym's AdvancedObs is also available
-        self.obs_builder = DefaultObs()
+        # FIXME: make sure observation is properly normalized
+        self.obs_builder = CustomObs()
         # Swap the action parser if you are using a different one, RLGym's Discrete and Continuous are also available
-        self.act_parser = DefaultAction()
+        self.act_parser = CustomActionParser()
         # Your neural network logic goes inside the Agent class, go take a look inside src/agent.py
         self.agent = Agent()
         # Adjust the tickskip if your agent was trained with a different value
